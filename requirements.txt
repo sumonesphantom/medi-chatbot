@@ -1,17 +1,42 @@
+# langchain==0.3.26
+# langchain-community==0.3.26
+# langchain-openai==0.3.24
+# langchain-pinecone==0.2.8
+# langchain-google-genai==2.0.7
+
+# flask==3.1.1
+# sentence-transformers==4.1.0
+# pypdf==5.6.1
+# python-dotenv==1.1.0
+# numpy==1.26.4
+
+# langchain-huggingface==0.1.2
+# huggingface_hub==0.23.4
+# transformers==4.38.2
+
+# -e .
+
+# LangChain core
 langchain==0.3.26
 langchain-community==0.3.26
-langchain-openai==0.3.24
 langchain-pinecone==0.2.8
-langchain-google-genai==2.0.7
 
-flask==3.1.1
-sentence-transformers==4.1.0
-pypdf==5.6.1
-python-dotenv==1.1.0
-numpy==1.26.4
-
-langchain-huggingface==0.1.2
-huggingface_hub==0.23.4
+# Hugging Face
 transformers==4.41.2
+accelerate>=1.0
+tokenizers>=0.19
 
--e .
+# Embeddings
+sentence-transformers==4.1.0
+
+# PDF loaders
+pypdf==5.6.1
+unstructured==0.7.0
+
+# Pinecone
+pinecone-client==2.2.1
+
+# Utilities
+numpy==1.26.4
+python-dotenv==1.1.0
+flask==3.1.1
