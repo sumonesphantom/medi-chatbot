@@ -14,43 +14,42 @@ from langchain_pinecone import PineconeVectorStore
 
 from pinecone import Pinecone
 from dotenv import load_dotenv
-import os
 
-load_dotenv()  
+load_dotenv()
 
-
-# Streamlit config
-
+# Streamlit Page Config
 st.set_page_config(
     page_title="Medical RAG Chatbot",
-    page_icon="🩺",
     layout="centered"
 )
 
-st.title("🩺 Medical RAG Chatbot")
-st.caption("TinyLlama + Pinecone (Local RAG)")
+st.title("Medical RAG Chatbot")
+st.caption("TinyLlama with Pinecone Retrieval")
 
+# Sidebar
+with st.sidebar:
+    st.header("System Information")
+    st.write("Model: TinyLlama 1.1B Chat")
+    st.write("Embedding: all-MiniLM-L6-v2")
+    st.write("Vector DB: Pinecone")
+    st.divider()
+    show_context = st.checkbox("Show retrieved context", value=False)
 
-# Loading embeddings and cached it
-
+# Resources
 @st.cache_resource
 def load_embeddings():
     return HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
-
-# Pinecone retriever (read-only as i have already built the index previously)
 @st.cache_resource
 def load_retriever():
     api_key = os.getenv("PINECONE_API_KEY")
-
     if not api_key:
-        st.error("PINECONE_API_KEY not found. Check your .env file.")
+        st.error("PINECONE_API_KEY not found.")
         st.stop()
 
     pc = Pinecone(api_key=api_key)
-
     index = pc.Index("medical-chatbot")
 
     vectorstore = PineconeVectorStore(
@@ -58,28 +57,30 @@ def load_retriever():
         embedding=load_embeddings()
     )
 
-    return vectorstore.as_retriever(search_kwargs={"k": 3})
+    return vectorstore.as_retriever(
+        search_kwargs={
+            "k": 3,
+            "filter": {"source": "medical_book"}  
+        }
+    )
 
-
-# Local LLM wrapper
 class LocalHFLLM(LLM):
     pipeline: any
 
     def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         output = self.pipeline(
             prompt,
-            max_new_tokens=128,   # faster
-            temperature=0,
+            max_new_tokens=128,
+            temperature=0.0,
             do_sample=False
         )[0]["generated_text"]
+
         return output[len(prompt):]
 
     @property
     def _llm_type(self) -> str:
         return "local_hf"
 
-
-# Load TinyLlama (Cacheing this and also this is a local model)
 @st.cache_resource
 def load_llm():
     model_id = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
@@ -91,28 +92,31 @@ def load_llm():
         torch_dtype="auto"
     )
 
-    hf_pipeline = pipeline(
+    pipe = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer
     )
 
-    return LocalHFLLM(pipeline=hf_pipeline)
+    return LocalHFLLM(pipeline=pipe)
 
-
-# Building RAG chain and caching it
 @st.cache_resource
 def build_rag_chain():
     system_prompt = (
-        "You are a medical assistant. Use ONLY the provided context to answer. "
-        "If the answer is not in the context, say you do not know. "
-        "Use at most three concise sentences.\n\n{context}"
+        "You are a medical assistant.\n"
+        "Answer ONLY using the provided book context.\n"
+        "Do NOT use prior knowledge.\n"
+        "If the answer is not present in the book, say \"I do not know based on the provided text.\" \n"
+        "Limit your answer to a maximum of three concise sentences.\n\n"
+        "{context}"
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}")
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}")
+        ]
+    )
 
     qa_chain = create_stuff_documents_chain(
         llm=load_llm(),
@@ -124,16 +128,41 @@ def build_rag_chain():
         combine_docs_chain=qa_chain
     )
 
-
 rag_chain = build_rag_chain()
 
+# Chat State
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# UI to input question
-query = st.text_input("Ask a medical question:")
+# Display chat history
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-if query:
-    with st.spinner("Thinking... 🧠"):
-        response = rag_chain.invoke({"input": query})
 
-    st.subheader("Answer")
-    st.write(response["answer"])
+user_input = st.chat_input("Ask a medical question based on the book")
+
+if user_input:
+    st.session_state.messages.append(
+        {"role": "user", "content": user_input}
+    )
+
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    with st.spinner("Generating answer"):
+        response = rag_chain.invoke({"input": user_input})
+
+    answer = response["answer"]
+
+    with st.chat_message("assistant"):
+        st.markdown(answer)
+
+    st.session_state.messages.append(
+        {"role": "assistant", "content": answer}
+    )
+
+    if show_context:
+        with st.expander("Retrieved Context"):
+            for doc in response["context"]:
+                st.write(doc.page_content)
