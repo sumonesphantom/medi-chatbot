@@ -4,7 +4,7 @@ This project is a local Retrieval-Augmented Generation (RAG) chatbot built for m
 
 ## User Interface
 
-![Medical RAG Chatbot UI](imgs/UI.png)
+![Medical RAG Chatbot UI](Imgs/UI.png)
 
 The application provides a clean chat-based interface for asking questions directly against the indexed medical book. Conversation history is preserved during the session, and retrieved context can optionally be inspected.
 
