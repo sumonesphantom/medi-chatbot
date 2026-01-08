@@ -75,7 +75,8 @@ class LocalHFLLM(LLM):
             do_sample=False
         )[0]["generated_text"]
 
-        return output[len(prompt):]
+        return output.strip()
+
 
     @property
     def _llm_type(self) -> str:
@@ -95,7 +96,8 @@ def load_llm():
     pipe = pipeline(
         "text-generation",
         model=model,
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
+        return_full_text=False
     )
 
     return LocalHFLLM(pipeline=pipe)

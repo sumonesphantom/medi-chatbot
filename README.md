@@ -1,6 +1,12 @@
 # Medical RAG Chatbot
 
-This project is a local Retrieval-Augmented Generation (RAG) chatbot built for medical question answering using a single reference book, this is in the data folder. The system retrieves relevant text from a Pinecone vector database and generates grounded responses using a locally hosted TinyLlama model.
+This project is a local Retrieval-Augmented Generation (RAG) chatbot built for medical question answering using a single reference book. The system retrieves relevant passages from a Pinecone vector database and generates grounded responses using a locally hosted TinyLlama model.
+
+## User Interface
+
+![Medical RAG Chatbot UI](imgs/UI.png)
+
+The application provides a clean chat-based interface for asking questions directly against the indexed medical book. Conversation history is preserved during the session, and retrieved context can optionally be inspected.
 
 ## Features
 
